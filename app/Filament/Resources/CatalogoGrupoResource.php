@@ -17,7 +17,7 @@ class CatalogoGrupoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-list-bullet';
 
-    protected static ?string $navigationLabel = 'Catálogos';
+    protected static ?string $navigationLabel = 'Catálogos del censo';
 
     protected static ?string $navigationGroup = 'Administración';
 
@@ -64,6 +64,8 @@ class CatalogoGrupoResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->can('catalogos.gestionar') ?? false;
+        $user = auth()->user();
+
+        return $user && ($user->hasRole('super_admin') || $user->can('catalogos.gestionar'));
     }
 }

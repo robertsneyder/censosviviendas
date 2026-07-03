@@ -2,12 +2,11 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\SectorResource\Pages;
+use App\Filament\Resources\BarrioResource\Pages;
 use App\Models\Barrio;
 use App\Models\Comuna;
 use App\Models\Departamento;
 use App\Models\Municipio;
-use App\Models\Sector;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -15,21 +14,21 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class SectorResource extends Resource
+class BarrioResource extends Resource
 {
-    protected static ?string $model = Sector::class;
+    protected static ?string $model = Barrio::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-map-pin';
+    protected static ?string $navigationIcon = 'heroicon-o-home-modern';
 
-    protected static ?string $navigationLabel = 'Sectores';
+    protected static ?string $navigationLabel = 'Barrios';
 
-    protected static ?string $modelLabel = 'sector';
+    protected static ?string $modelLabel = 'barrio';
 
-    protected static ?string $pluralModelLabel = 'sectores';
+    protected static ?string $pluralModelLabel = 'barrios';
 
     protected static ?string $navigationGroup = 'Catálogo territorial';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form
     {
@@ -53,14 +52,6 @@ class SectorResource extends Resource
                 ->options(fn (Get $get): array => $get('municipio_id')
                     ? Comuna::where('municipio_id', $get('municipio_id'))->orderBy('nombre')->pluck('nombre', 'id')->all()
                     : [])
-                ->live()
-                ->dehydrated(false)
-                ->afterStateUpdated(fn (Forms\Set $set) => $set('barrio_id', null)),
-            Forms\Components\Select::make('barrio_id')
-                ->label('Barrio')
-                ->options(fn (Get $get): array => $get('comuna_id')
-                    ? Barrio::where('comuna_id', $get('comuna_id'))->orderBy('nombre')->pluck('nombre', 'id')->all()
-                    : [])
                 ->searchable()
                 ->required(),
             Forms\Components\TextInput::make('nombre')->label('Nombre')->required()->maxLength(255),
@@ -73,15 +64,14 @@ class SectorResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('nombre')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('barrio.nombre')->label('Barrio'),
-                Tables\Columns\TextColumn::make('barrio.comuna.nombre')->label('Comuna'),
-                Tables\Columns\TextColumn::make('barrio.comuna.municipio.nombre')->label('Municipio'),
-                Tables\Columns\TextColumn::make('inmuebles_count')->counts('inmuebles')->label('Inmuebles'),
+                Tables\Columns\TextColumn::make('comuna.nombre')->label('Comuna')->sortable(),
+                Tables\Columns\TextColumn::make('comuna.municipio.nombre')->label('Municipio'),
+                Tables\Columns\TextColumn::make('sectores_count')->counts('sectores')->label('Sectores'),
                 Tables\Columns\IconColumn::make('activo')->boolean(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('barrio')
-                    ->relationship('barrio', 'nombre'),
+                Tables\Filters\SelectFilter::make('comuna')
+                    ->relationship('comuna', 'nombre'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -96,7 +86,7 @@ class SectorResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageSectores::route('/'),
+            'index' => Pages\ManageBarrios::route('/'),
         ];
     }
 
