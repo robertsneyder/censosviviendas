@@ -196,13 +196,17 @@ jobs:
         continue-on-error: true
         run: |
           if [ -d "${{ github.workspace }}/public/build" ]; then
-            rsync -r -e "ssh -p ${{ secrets.SSH_PORT }}" ${{ github.workspace }}/public/build/ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:~/domains/${{ secrets.WEBSITE_FOLDER }}/public/build
+            for TARGET in public/build public_html/build; do
+              rsync -r -e "ssh -p ${{ secrets.SSH_PORT }}" \
+                ${{ github.workspace }}/public/build/ \
+                ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:~/domains/${{ secrets.WEBSITE_FOLDER }}/$TARGET
+            done
           else
             echo "ℹ️ No build directory found, skipping asset copy"
           fi
 
       - name: Deploy to Hostinger Server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -210,48 +214,31 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            
+
             echo "🚀 Starting deployment..."
-            
-            cd domains/${{ secrets.WEBSITE_FOLDER }}
-            
-            # Ensure we're on the correct branch
-            git fetch origin
-            git checkout main
-            git reset --hard origin/main
-            
-            echo "📦 Installing Composer dependencies..."
-            composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
-            
-            # Note: Frontend assets should already be built and committed
-            # If you need to build on server, ensure npm/node is available
-            # and uncomment the following lines:
-            # if [ -f package.json ]; then
-            #   npm ci --production && npm run build || npm run prod
-            # fi
-            
-            echo "🔧 Running Laravel setup commands..."
-            
-            php artisan storage:link || true
-            php artisan migrate --force
-            
-            php artisan config:clear
-            php artisan config:cache
-            php artisan route:clear
-            php artisan route:cache
-            php artisan view:clear
-            php artisan view:cache
-            php artisan optimize:clear
-            php artisan optimize
-            php artisan event:clear || true
-            php artisan event:cache || true
-            php artisan queue:restart || true
-            php artisan cache:clear
-            php artisan opcache:clear || true
-            
-            echo "✅ Deployment completed successfully!"
-            
-            # Show deployment info
+
+            cd ~/domains/${{ secrets.WEBSITE_FOLDER }}
+
+            PHP=/opt/alt/php83/usr/bin/php
+            COMPOSER=$(command -v composer)
+
+            if [ ! -x "$PHP" ]; then
+              echo "ERROR: PHP 8.3 no encontrado en Hostinger"
+              exit 1
+            fi
+
+            if [ -d .git ]; then
+              git fetch origin
+              git checkout main
+              git reset --hard origin/main
+            else
+              echo "ERROR: No hay repositorio git. Clona el repo en esta carpeta primero."
+              exit 1
+            fi
+
+            chmod +x deploy/post-deploy.sh
+            PHP_BIN="$PHP" COMPOSER_BIN="$COMPOSER" ./deploy/post-deploy.sh
+
             echo ""
             echo "📊 Deployment Information:"
             echo "   Branch: main"
