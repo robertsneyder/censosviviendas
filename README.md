@@ -47,10 +47,14 @@ Acceso local: `http://localhost/censosviviendas/public`
 
 ## Despliegue Hostinger
 
-1. Subir código vía Git o FTP
-2. Apuntar el subdominio al directorio `/public`
-3. Configurar `.env` con credenciales MySQL de Hostinger
-4. Ejecutar: `php artisan migrate --seed` y `php artisan config:cache`
+Guía completa: **[DEPLOY_HOSTINGER.md](DEPLOY_HOSTINGER.md)**
+
+Resumen:
+1. Activar SSH y PHP 8.2 en hPanel
+2. Crear base de datos MySQL
+3. Apuntar dominio a carpeta `public/`
+4. Clonar repo y ejecutar `deploy/first-setup.sh`
+5. Configurar secrets de GitHub Actions para deploy automático
 
 ## Territorio precargado
 
