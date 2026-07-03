@@ -63,7 +63,7 @@ return new class extends Migration
 
         Schema::create('inquilinos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('unidad_habitacional_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('unidad_habitacional_id')->constrained('unidades_habitacionales')->cascadeOnDelete();
             $table->string('nombre_completo')->nullable();
             $table->string('documento')->nullable();
             $table->string('telefono')->nullable();
