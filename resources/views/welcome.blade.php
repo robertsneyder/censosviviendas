@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Censo Viviendas - Junta Niño Jesús</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 text-gray-800 antialiased">
     <main class="mx-auto flex max-w-4xl flex-col items-center px-4 py-16 text-center">
