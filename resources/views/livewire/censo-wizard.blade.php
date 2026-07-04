@@ -1,4 +1,12 @@
 <div>
+    @if ($errors->any())
+        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            @foreach ($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+    @endif
+
     {{-- Barra de progreso --}}
     <div class="mb-6">
         <div class="mb-2 flex justify-between text-sm text-gray-600">
@@ -84,7 +92,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" wire:model.live="form.propietario_vive_aqui" id="vive_aqui" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                    <input type="checkbox" wire:model="form.propietario_vive_aqui" id="vive_aqui" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                     <label for="vive_aqui" class="text-sm font-medium">¿El propietario vive en este inmueble?</label>
                 </div>
                 @if (! $form['propietario_vive_aqui'])
@@ -104,7 +112,7 @@
             @else
                 <div class="space-y-4">
                     <div class="flex items-center gap-2">
-                        <input type="checkbox" wire:model.live="form.hay_encargado" id="hay_encargado" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                        <input type="checkbox" wire:model="form.hay_encargado" id="hay_encargado" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
                         <label for="hay_encargado" class="text-sm font-medium">¿Hay una persona encargada del inmueble?</label>
                     </div>
                     @if ($form['hay_encargado'])
@@ -157,7 +165,7 @@
                                 <option value="">Tipo de unidad</option>
                                 @foreach ($tiposUnidad as $v => $e) <option value="{{ $v }}">{{ $e }}</option> @endforeach
                             </select>
-                            <select wire:model.live="form.unidades.{{ $index }}.estado" class="rounded-lg border-gray-300 text-sm shadow-sm">
+                            <select wire:model="form.unidades.{{ $index }}.estado" class="rounded-lg border-gray-300 text-sm shadow-sm">
                                 <option value="">Estado</option>
                                 @foreach ($estadosUnidad as $v => $e) <option value="{{ $v }}">{{ $e }}</option> @endforeach
                             </select>
@@ -250,8 +258,9 @@
             @endif
 
             @if ($paso < $totalPasos)
-                <button type="button" wire:click="siguiente" class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700">
-                    Siguiente
+                <button type="button" wire:click="siguiente" wire:loading.attr="disabled" wire:target="siguiente" class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+                    <span wire:loading.remove wire:target="siguiente">Siguiente</span>
+                    <span wire:loading wire:target="siguiente">Cargando...</span>
                 </button>
             @else
                 <button type="button" wire:click="guardar" wire:loading.attr="disabled" class="rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50">

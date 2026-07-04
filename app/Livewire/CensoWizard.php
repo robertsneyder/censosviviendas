@@ -45,6 +45,8 @@ class CensoWizard extends Component
 
     public function mount(?Inmueble $inmueble = null): void
     {
+        abort_unless(auth()->user()?->can('censos.crear'), 403);
+
         if ($inmueble) {
             abort_unless(
                 app(TerritorioService::class)->usuarioPuedeAccederInmueble(auth()->user(), $inmueble),
@@ -140,7 +142,13 @@ class CensoWizard extends Component
 
     public function siguiente(): void
     {
-        $this->validate($this->reglasPaso());
+        $this->normalizarFormulario();
+
+        $rules = $this->reglasPaso();
+        if (! empty($rules)) {
+            $this->validate($rules);
+        }
+
         if ($this->paso < $this->totalPasos) {
             $this->paso++;
         }
@@ -155,7 +163,12 @@ class CensoWizard extends Component
 
     public function guardar(): void
     {
-        $this->validate($this->reglasPaso());
+        $this->normalizarFormulario();
+
+        $rules = $this->reglasPaso();
+        if (! empty($rules)) {
+            $this->validate($rules);
+        }
 
         $inmueble = $this->inmuebleId
             ? Inmueble::findOrFail($this->inmuebleId)
@@ -168,9 +181,31 @@ class CensoWizard extends Component
         $this->redirect(route('censo.exito', $registro));
     }
 
+    protected function normalizarFormulario(): void
+    {
+        foreach (['propietario_vive_aqui', 'hay_encargado', 'encargado_vive_aqui', 'requiere_nueva_visita'] as $campo) {
+            $this->form[$campo] = filter_var($this->form[$campo] ?? false, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        foreach ([
+            'propietario_nombre', 'propietario_documento', 'propietario_telefono', 'propietario_lugar_residencia',
+            'encargado_nombre', 'encargado_documento', 'encargado_telefono', 'encargado_relacion',
+            'direccion', 'referencia_ubicacion', 'tipo_inmueble', 'estado_ocupacion', 'observaciones',
+        ] as $campo) {
+            if (array_key_exists($campo, $this->form) && $this->form[$campo] !== null && ! is_string($this->form[$campo])) {
+                $this->form[$campo] = (string) $this->form[$campo];
+            }
+        }
+
+        $this->form['num_unidades'] = max(1, (int) ($this->form['num_unidades'] ?? 1));
+        $this->form['sector_id'] = $this->form['sector_id'] !== '' && $this->form['sector_id'] !== null
+            ? (int) $this->form['sector_id']
+            : '';
+    }
+
     protected function reglasPaso(): array
     {
-        return match ($this->paso) {
+        return match ((int) $this->paso) {
             1 => [
                 'form.sector_id' => 'required|exists:sectores,id',
                 'form.direccion' => 'required|string|max:255',
@@ -193,7 +228,7 @@ class CensoWizard extends Component
         };
     }
 
-    public function getSectoresProperty(): array
+    protected function cargarSectores(): array
     {
         $query = Sector::with('barrio.comuna.municipio.departamento')->where('activo', true);
 
@@ -208,18 +243,46 @@ class CensoWizard extends Component
         return $query->get()->mapWithKeys(fn (Sector $s) => [$s->id => $s->rutaTerritorial()])->toArray();
     }
 
+    protected function catalogosParaPaso(): array
+    {
+        $vacios = [
+            'tiposInmueble' => [],
+            'estadosOcupacion' => [],
+            'tiposUnidad' => [],
+            'estadosUnidad' => [],
+            'calidadesOcupante' => [],
+            'relacionesEncargado' => [],
+            'relacionesArrendador' => [],
+            'estadosCompletitud' => [],
+        ];
+
+        return match ((int) $this->paso) {
+            2 => array_merge($vacios, [
+                'tiposInmueble' => CatalogoGrupo::opcionesPorSlug('tipo_inmueble'),
+                'estadosOcupacion' => CatalogoGrupo::opcionesPorSlug('estado_ocupacion'),
+            ]),
+            4 => array_merge($vacios, [
+                'relacionesEncargado' => CatalogoGrupo::opcionesPorSlug('relacion_encargado'),
+            ]),
+            5 => array_merge($vacios, [
+                'tiposUnidad' => CatalogoGrupo::opcionesPorSlug('tipo_unidad'),
+                'estadosUnidad' => CatalogoGrupo::opcionesPorSlug('estado_unidad'),
+                'calidadesOcupante' => CatalogoGrupo::opcionesPorSlug('calidad_ocupante'),
+            ]),
+            6 => array_merge($vacios, [
+                'relacionesArrendador' => CatalogoGrupo::opcionesPorSlug('relacion_arrendador'),
+            ]),
+            8 => array_merge($vacios, [
+                'estadosCompletitud' => CatalogoGrupo::opcionesPorSlug('estado_completitud'),
+            ]),
+            default => $vacios,
+        };
+    }
+
     public function render()
     {
-        return view('livewire.censo-wizard', [
-            'sectores' => $this->sectores,
-            'tiposInmueble' => CatalogoGrupo::opcionesPorSlug('tipo_inmueble'),
-            'estadosOcupacion' => CatalogoGrupo::opcionesPorSlug('estado_ocupacion'),
-            'tiposUnidad' => CatalogoGrupo::opcionesPorSlug('tipo_unidad'),
-            'estadosUnidad' => CatalogoGrupo::opcionesPorSlug('estado_unidad'),
-            'calidadesOcupante' => CatalogoGrupo::opcionesPorSlug('calidad_ocupante'),
-            'relacionesEncargado' => CatalogoGrupo::opcionesPorSlug('relacion_encargado'),
-            'relacionesArrendador' => CatalogoGrupo::opcionesPorSlug('relacion_arrendador'),
-            'estadosCompletitud' => CatalogoGrupo::opcionesPorSlug('estado_completitud'),
-        ]);
+        return view('livewire.censo-wizard', array_merge([
+            'sectores' => (int) $this->paso === 1 ? $this->cargarSectores() : [],
+        ], $this->catalogosParaPaso()));
     }
 }
